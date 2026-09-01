@@ -1,0 +1,20 @@
+[Unit]
+Description=CodeRAG API (uvicorn, single worker)
+After=network.target mysql.service redis-server.service
+Wants=mysql.service redis-server.service
+
+[Service]
+Type=simple
+User=coderag
+Group=coderag
+WorkingDirectory=/opt/coderag/backend
+# 单 worker：避免 ChromaDB + bge-reranker-base 在多进程下重复驻留内存（2C4G 预算有限）
+ExecStart=/home/coderag/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8085 --workers 1
+Restart=always
+RestartSec=3
+# 启动慢（加载 ChromaDB + 重排模型），给足启动超时
+TimeoutStartSec=120
+Environment=PYTHONUTF8=1
+
+[Install]
+WantedBy=multi-user.target

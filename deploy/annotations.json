@@ -1,0 +1,58 @@
+[
+  {
+    "question": "Python 中什么是语法错误（语法错误/解析错误）？",
+    "doc": "errors",
+    "chunk_indices": [2, 4],
+    "reference_answer": "语法错误又称解析错误，是学习 Python 时最常见的错误，发生在解析阶段。解析器会重复出错的行并显示指向错误位置的小箭头，还会打印文件名和行号。",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Python 中什么是异常？它和语法错误的区别是什么？",
+    "doc": "errors",
+    "chunk_indices": [5, 7],
+    "reference_answer": "异常是语句或表达式语法正确但执行时检测到的错误；语法错误在解析阶段就报出。错误信息的最后一行说明程序遇到什么类型的错误，类型名称会作为错误信息的一部分打印出来。",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Python 的 try/except 语句是如何工作的？",
+    "doc": "errors",
+    "chunk_indices": [10],
+    "reference_answer": "先执行 try 子句，若没有触发异常则跳过 except 子句；若发生异常且类型与 except 后指定的异常匹配，则执行 except 子句然后继续；若不匹配则传递到外层 try，没有处理器则成为未处理异常并停止执行。",
+    "difficulty": "medium"
+  },
+  {
+    "question": "except 子句中异常类的匹配规则是什么？为什么 except 子句的顺序很重要？",
+    "doc": "errors",
+    "chunk_indices": [12, 14],
+    "reference_answer": "except 子句中的类匹配的异常是该类本身或其所派生类的实例，列出派生类的 except 不会匹配基类实例。顺序很重要：触发的是第一个匹配的 except 子句，若把基类放最前，子类异常也会被它先捕获。",
+    "difficulty": "hard"
+  },
+  {
+    "question": "except Exception 的作用是什么？常见的处理异常后重新抛出的模式是什么？",
+    "doc": "errors",
+    "chunk_indices": [16, 17],
+    "reference_answer": "Exception 是所有非致命异常的基类，可作通配符捕获几乎一切，但好的做法是尽可能具体地声明要处理的异常。常见模式是先打印或记录异常，再重新 raise 让调用者也处理。",
+    "difficulty": "hard"
+  },
+  {
+    "question": "Python 中如何用 raise 主动抛出异常？raise 的参数有什么要求？",
+    "doc": "errors",
+    "chunk_indices": [22, 24],
+    "reference_answer": "raise 语句支持强制触发指定异常，唯一的参数就是要触发的异常，必须是异常实例或派生自 BaseException 的异常类。若传的是异常类，会通过无参构造函数隐式实例化。",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Python 中 raise ... from 的作用是什么？from None 表示什么？",
+    "doc": "errors",
+    "chunk_indices": [30, 31],
+    "reference_answer": "raise ... from 表明一个异常是另一个异常的直接后果，在转换异常时很有用；from None 用于禁用自动异常链，即不显示之前的异常上下文。",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Python 的 finally 子句有什么作用？它在什么情况下执行？",
+    "doc": "errors",
+    "chunk_indices": [36, 38],
+    "reference_answer": "finally 子句定义在所有情况下都必须执行的清理操作，是 try 语句结束前执行的最后一项任务，不论 try 是否触发异常都会执行；常用于释放文件、网络连接等外部资源。",
+    "difficulty": "medium"
+  }
+]

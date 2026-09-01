@@ -1,0 +1,40 @@
+/* ── 全局基础样式 ─────────────────────────────────────────────── */
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Markdown 渲染防溢出（聊天/文档长内容）───────────────────── */
+
+.markdown-renderer {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 表格：允许横向滚动，避免撑破气泡/容器 */
+.markdown-renderer table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+/* 行内代码：长 token / 无空格字符串可折行 */
+.markdown-renderer code {
+  word-break: break-word;
+}
+
+/* 图片：不超过容器宽度 */
+.markdown-renderer img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 代码块 / pre：允许横向滚动 */
+.markdown-renderer pre {
+  max-width: 100%;
+  overflow-x: auto;
+}

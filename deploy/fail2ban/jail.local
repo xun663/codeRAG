@@ -1,0 +1,11 @@
+# CodeRAG 2C4G：SSH 爆破防护（fail2ban）
+# 规则：10 分钟内 5 次失败 → 封禁 1 小时。安装到 /etc/fail2ban/jail.local
+[DEFAULT]
+bantime = 3600
+findtime = 600
+maxretry = 5
+
+# Ubuntu 24.04 sshd 日志走 journald，用 systemd backend
+[sshd]
+enabled = true
+backend = systemd

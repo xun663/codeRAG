@@ -1,0 +1,19 @@
+[Unit]
+Description=CodeRAG Celery worker (async exercise generation)
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=coderag
+Group=coderag
+WorkingDirectory=/opt/coderag/backend
+# --pool=solo --concurrency=1：单进程内联执行，避免 fork 复制 ChromaDB 内存，任务队列名 default 已对齐
+ExecStart=/home/coderag/venv/bin/python -m celery -A app.tasks.celery_app worker --loglevel=info --pool=solo --concurrency=1 --queues=default
+Restart=always
+RestartSec=3
+TimeoutStartSec=60
+Environment=PYTHONUTF8=1
+
+[Install]
+WantedBy=multi-user.target

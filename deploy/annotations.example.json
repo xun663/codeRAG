@@ -1,0 +1,23 @@
+[
+  {
+    "question": "Python 中列表和元组的主要区别是什么？",
+    "doc": "datastructures",
+    "chunk_indices": [3, 4],
+    "reference_answer": "列表可变（可增删改），元组不可变；元组由逗号分隔的元素组成。",
+    "difficulty": "easy"
+  },
+  {
+    "question": "Python 的异常处理 try/except 是如何工作的？",
+    "doc": "errors",
+    "chunk_indices": [5, 6],
+    "reference_answer": "try 放可能出错的代码，except 捕获并处理异常，finally 执行清理。",
+    "difficulty": "medium"
+  },
+  {
+    "question": "Python 中如何定义类和创建对象？__init__ 方法的作用？",
+    "doc": "classes",
+    "chunk_indices": [2, 3, 4],
+    "reference_answer": "class 定义类，__init__ 初始化实例属性，self 指向实例。",
+    "difficulty": "medium"
+  }
+]
