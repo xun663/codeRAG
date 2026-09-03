@@ -33,6 +33,81 @@
 | LLM | DeepSeek V4（OpenAI 兼容协议，可运行时切换） |
 | Embedding | bge-m3（本地）/ 千问 text-embedding-v3（云端），1024 维 |
 
+## 系统架构
+
+四层：前端 → API → 核心领域（入库 / 问答 / 学习 / 治理）→ 存储与模型。入库和问答是两条独立管道；学习走 SM-2，不经过 RAG 生成。
+
+```mermaid
+flowchart TB
+  subgraph FE["① 前端 · React / TypeScript"]
+    direction LR
+    F1[智能问答]
+    F2[知识库]
+    F3[学习复习]
+    F4[质量报告]
+    F5[配置 / Admin]
+  end
+
+  subgraph API["② API · FastAPI · REST + SSE"]
+    direction LR
+    A1[Auth]
+    A2["KB / Documents"]
+    A3["Chat / Search"]
+    A4[Exercises]
+    A5["Eval / Gate"]
+    A6["Config / Monitor"]
+  end
+
+  subgraph CORE["③ 核心领域"]
+    subgraph ING["入库"]
+      direction LR
+      I1[解析] --> I2[清洗] --> I3[代码感知分块] --> I4[嵌入] --> I5[向量索引]
+    end
+
+    subgraph QA["问答"]
+      Q1[意图路由] --> Q2[查询标准化]
+      Q2 --> Q3[Dense]
+      Q2 --> Q4[BM25]
+      Q3 --> Q5[RRF 融合]
+      Q4 --> Q5
+      Q5 --> Q6[Cross-Encoder 重排]
+      Q6 --> Q7[LLM 生成]
+      Q1 -.->|tool / greeting / meta| Q8[工具 或 纯 LLM]
+    end
+
+    subgraph LEARN["学习"]
+      direction LR
+      L1[LLM 出题] --> L2[SM-2 间隔重复]
+    end
+
+    subgraph GV["治理"]
+      direction LR
+      G1[人工 GT 门禁]
+      G2[自监督自动体检]
+    end
+  end
+
+  subgraph INF["④ 存储与模型"]
+    direction LR
+    S1[(MySQL)]
+    S2[(ChromaDB)]
+    S3[(Redis / Celery)]
+    S4[DeepSeek]
+    S5["bge-m3 / 千问"]
+  end
+
+  FE --> API --> CORE --> INF
+```
+
+| 管道 | 走什么 | 不走什么 |
+|------|--------|----------|
+| 入库 | 解析 → 清洗 → 分块 → 嵌入 → Chroma | 不调生成 LLM |
+| 问答 | 意图路由 → 标准化 → Dense+BM25 → RRF → 重排 → LLM | greeting/meta/tool 不检索 |
+| 学习 | chunk 出题 → SM-2 排程 → 错题回顾 | 不走问答生成 |
+| 治理 | 检索级 doc_hit / context_recall；自动门禁可出题自测 | 人工门禁不调 LLM |
+
+分图与降级策略见 [docs/architecture.md](docs/architecture.md)。
+
 ## 快速开始
 
 ### 环境要求

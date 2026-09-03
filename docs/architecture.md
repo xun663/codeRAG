@@ -1,76 +1,84 @@
 # CodeRAG 架构文档
 
+本文与仓库首页 README 使用同一张系统总图。下面各节是分图与实现细节。
+
 ## 系统架构
 
+四层：前端 → API → 核心领域（入库 / 问答 / 学习 / 治理）→ 存储与模型。入库和问答是两条独立管道；学习走 SM-2，不经过 RAG 生成。
+
+```mermaid
+flowchart TB
+  subgraph FE["① 前端 · React / TypeScript"]
+    direction LR
+    F1[智能问答]
+    F2[知识库]
+    F3[学习复习]
+    F4[质量报告]
+    F5[配置 / Admin]
+  end
+
+  subgraph API["② API · FastAPI · REST + SSE"]
+    direction LR
+    A1[Auth]
+    A2["KB / Documents"]
+    A3["Chat / Search"]
+    A4[Exercises]
+    A5["Eval / Gate"]
+    A6["Config / Monitor"]
+  end
+
+  subgraph CORE["③ 核心领域"]
+    subgraph ING["入库"]
+      direction LR
+      I1[解析] --> I2[清洗] --> I3[代码感知分块] --> I4[嵌入] --> I5[向量索引]
+    end
+
+    subgraph QA["问答"]
+      Q1[意图路由] --> Q2[查询标准化]
+      Q2 --> Q3[Dense]
+      Q2 --> Q4[BM25]
+      Q3 --> Q5[RRF 融合]
+      Q4 --> Q5
+      Q5 --> Q6[Cross-Encoder 重排]
+      Q6 --> Q7[LLM 生成]
+      Q1 -.->|tool / greeting / meta| Q8[工具 或 纯 LLM]
+    end
+
+    subgraph LEARN["学习"]
+      direction LR
+      L1[LLM 出题] --> L2[SM-2 间隔重复]
+    end
+
+    subgraph GV["治理"]
+      direction LR
+      G1[人工 GT 门禁]
+      G2[自监督自动体检]
+    end
+  end
+
+  subgraph INF["④ 存储与模型"]
+    direction LR
+    S1[(MySQL)]
+    S2[(ChromaDB)]
+    S3[(Redis / Celery)]
+    S4[DeepSeek]
+    S5["bge-m3 / 千问"]
+  end
+
+  FE --> API --> CORE --> INF
 ```
-┌────────────────────────────────────────────────────┐
-│                  Frontend (React)                   │
-│   ChatUI │ KB Mgmt │ Eval │ Config │ Admin         │
-└────────────────────┬───────────────────────────────┘
-                     │ Axios / SSE
-┌────────────────────┴───────────────────────────────┐
-│               FastAPI Backend                       │
-│  ┌─────────────────────────────────────────────┐   │
-│  │           API Layer (REST + SSE)             │   │
-│  └──────┬──────┬──────┬──────┬─────────────────┘   │
-│         │      │      │      │                      │
-│  ┌──────┴──┐ ┌─┴───┐ ┌─┴───┐ ┌┴──────────┐        │
-│  │ Auth    │ │KB   │ │Chat │ │Eval/      │        │
-│  │ Module  │ │Svc  │ │/RAG │ │Monitor    │        │
-│  └─────────┘ └─────┘ └──┬───┘ └───────────┘        │
-│                         │                           │
-│          ┌──────────────┴──────────────┐            │
-│          │     Intent Router (NEW)      │            │
-│          │  Tool │ RAG │ Pure LLM       │            │
-│          └──────────────────────────────┘            │
-│                         │                           │
-│          ┌──────────────┴──────────────┐            │
-│          │       RAG Pipeline           │            │
-│          │  Query → Retrieve → Generate │            │
-│          └──────────────────────────────┘            │
-│                         │                           │
-│  ┌──────────┐  ┌────────┴────────┐  ┌────────────┐ │
-│  │ LLM      │  │ Vector Store     │  │ Document    │ │
-│  │ Factory  │  │ Factory          │  │ Pipeline    │ │
-│  └──────────┘  └─────────────────┘  └─────────────┘ │
-│                                                     │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  RAG 增强层 (2026-07-13)                      │   │
-│  │  ┌──────────────────┐ ┌────────────────────┐ │   │
-│  │  │ Intent Classifier │ │ Query Standardizer  │ │   │
-│  │  │ greeting/meta/    │ │ 动态决策:           │ │   │
-│  │  │ tool/knowledge/   │ │ 清晰→FastPath(0 LLM)│ │   │
-│  │  │ clarification     │ │ 模糊→合并LLM(1 调用) │ │   │
-│  │  └──────────────────┘ └────────────────────┘ │   │
-│  │  ┌──────────────────────────────────────┐    │   │
-│  │  │  Learning Module                      │    │   │
-│  │  │  ┌────────────┐ ┌──────────────────┐ │    │   │
-│  │  │  │ Exercise   │ │ SM-2 Scheduler    │ │    │   │
-│  │  │  │ Generator  │ │ interval/EF/rep   │ │    │   │
-│  │  │  │ (LLM出题)  │ │ 间隔重复排程      │ │    │   │
-│  │  │  └────────────┘ └──────────────────┘ │    │   │
-│  │  └──────────────────────────────────────┘    │   │
-│  │  ┌──────────────────────────────────────┐    │   │
-│  │  │  Tool Module (NEW)                    │    │   │
-│  │  │  datetime / calculator / weather      │    │   │
-│  │  │  currency_converter / unit_converter  │    │   │
-│  │  └──────────────────────────────────────┘    │   │
-│  └──────────────────────────────────────────────┘   │
-│                                                     │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  GPU Acceleration (NEW)                       │   │
-│  │  ┌──────────────────┐ ┌────────────────────┐ │   │
-│  │  │ Embedding (CUDA) │ │ Reranker (CUDA)     │ │   │
-│  │  │ 8-9x vs CPU      │ │ 6x vs CPU           │ │   │
-│  │  └──────────────────┘ └────────────────────┘ │   │
-│  └──────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────┘
-         │                │                  │
-    ┌────▼────┐    ┌──────▼──────┐    ┌─────▼─────┐
-    │ DeepSeek │    │ ChromaDB    │    │ MySQL/     │
-    │ V4 Flash │    │ (local)     │    │ PostgreSQL │
-    └─────────┘    └─────────────┘    └────────────┘
-```
+
+| 层 | 落地 | 说明 |
+|----|------|------|
+| 前端 | Chat、KB、Quiz、`/admin/quality`、Config / Monitoring / Users | Axios + SSE |
+| API | `api/v1`：auth、kbs、documents、chat、search、exercises、eval、config、monitoring | REST + SSE |
+| 入库 | parse → clean → hybrid chunk → embed → Chroma `kb_{id}` | 不调生成 LLM |
+| 问答 | 意图路由 → 标准化 → Dense+BM25 → RRF → Cross-Encoder → LLM | greeting/meta/tool 不检索 |
+| 学习 | LLM 出题 + SM-2 | 不走问答生成 |
+| 治理 | 人工 GT 门禁 + 自监督自动体检 | 人工门禁只评检索 |
+| 存储 | MySQL 元数据、Chroma 向量、Redis/Celery 异步任务 | 当前向量库为 Chroma，非 Milvus |
+
+意图分类、查询标准化、工具调用属于**问答管道**内部，不是独立于 RAG 的「增强层」。GPU 加速是 Embedding / Reranker 的运行时细节，见下文检索节。
 
 ## Intent Router — 多路径智能问答路由 (2026-07-16)
 
