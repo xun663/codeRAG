@@ -21,6 +21,9 @@ else:
         pool_size=20,
         max_overflow=10,
         pool_pre_ping=True,
+        # 主动回收长活连接(< MySQL wait_timeout)，避免复用被 MySQL 端空闲掐断的死连接
+        # asyncmy+uvloop 对 closed socket 抛 RuntimeError 而非 OperationalError，pre_ping 兜不住 → 登录偶发 500
+        pool_recycle=1800,
     )
 
 async_session_factory = async_sessionmaker(
